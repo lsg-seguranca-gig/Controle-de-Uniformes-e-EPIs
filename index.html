@@ -1478,7 +1478,60 @@ function printReport() {
       + '.badge{padding:2px 8px;border-radius:12px;font-size:11px}'
       + '@media print{body{padding:0}}'
     + '</style>'
-    + '</head><body><h1>' + title + '</h1>' + content + '</body></html>';
+    + '</head><body><h1>' + title + '</h1>' + content + '
+<script>
+// ===== Garantia de funções globais + fallback de listeners =====
+if (typeof window.selectSetor !== 'function') {
+  window.selectSetor = function (setor) {
+    window.pendingSetor = setor;
+    const el = document.getElementById('modalLoginSetor');
+    if (el) el.textContent = (setor === 'admin' ? 'Admin' : setor) + ' — informe a senha';
+    const ml = document.getElementById('modalLogin');
+    if (ml) { ml.style.display = 'flex'; ml.classList.remove('hidden'); }
+    setTimeout(() => document.getElementById('loginPassword')?.focus(), 50);
+  };
+}
+if (typeof window.doLogin !== 'function') {
+  window.doLogin = async function () {
+    const pwd = document.getElementById('loginPassword')?.value || '';
+    const setor = window.pendingSetor;
+    if (!setor || !pwd) { showToast('Informe a senha.','warn'); return; }
+    try{
+      const resp = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ setor, senha: pwd }) });
+      const json = await resp.json();
+      if (!json.ok) { showToast(json.error || 'Falha na autenticação','error'); return; }
+      localStorage.setItem('auth_token', json.token);
+      localStorage.setItem('auth_setor', json.setor);
+      closeModal('modalLogin');
+      window.abrirAppComSetor?.(json.setor);
+    } catch(e) { console.error('login error', e); showToast('Erro ao autenticar','error'); }
+  };
+}
+if (typeof window.abrirAppComSetor !== 'function') {
+  window.abrirAppComSetor = function (setor) {
+    window.userSetor = setor;
+    const ls = document.getElementById('loginScreen'); if (ls) ls.style.display = 'none';
+    const ma = document.getElementById('mainApp'); if (ma) ma.style.display = 'flex';
+    const mh = document.getElementById('mobileHeader'); if (mh) mh.style.display = 'flex';
+    const setorLabel = setor==='admin' ? 'Todos os Setores' : (setor==='RH' ? 'RH - Uniformes' : 'Segurança - EPIs');
+    const lbl = document.getElementById('sectorLabel'); if (lbl) lbl.textContent = setorLabel;
+    window.loadAllData?.();
+    window.lucide?.createIcons();
+  };
+}
+(function(){
+  function bind(){
+    document.querySelectorAll('button[onclick*="selectSetor(\'RH\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('RH')); });
+    document.querySelectorAll('button[onclick*="selectSetor(\'Segurança\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('Segurança')); });
+    document.querySelectorAll('button[onclick*="selectSetor(\'admin\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('admin')); });
+    const loginBtn = document.getElementById('btnLoginConfirm');
+    if (loginBtn && !loginBtn.dataset.bound) { loginBtn.addEventListener('click', window.doLogin); loginBtn.dataset.bound = '1'; }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
+</script>
+
+</body></html>';
   w.document.open();
   w.document.write(doc);
   w.document.close();
@@ -1489,13 +1542,66 @@ function abrirAppComSetor(setor){
   userSetor = setor;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainApp').style.display='flex';
-  const mh = document.getElementById('mobileHeader'); if(mh) mh.style.display='flex';
+  const mh=document.getElementById('mobileHeader'); if(mh) mh.style.display='flex';
   const setorLabel = (setor==='admin')?'Todos os Setores':(setor==='RH')?'RH - Uniformes':'Segurança - EPIs';
   const lbl = document.getElementById('sectorLabel'); if (lbl) lbl.textContent = setorLabel;
   loadAllData();
   lucide.createIcons();
 }
 document.addEventListener('click',(ev)=>{ if(ev.target && ev.target.id==='btnLoginConfirm'){ doLogin(); }});
+</script>
+
+
+<script>
+// ===== Garantia de funções globais + fallback de listeners =====
+if (typeof window.selectSetor !== 'function') {
+  window.selectSetor = function (setor) {
+    window.pendingSetor = setor;
+    const el = document.getElementById('modalLoginSetor');
+    if (el) el.textContent = (setor === 'admin' ? 'Admin' : setor) + ' — informe a senha';
+    const ml = document.getElementById('modalLogin');
+    if (ml) { ml.style.display = 'flex'; ml.classList.remove('hidden'); }
+    setTimeout(() => document.getElementById('loginPassword')?.focus(), 50);
+  };
+}
+if (typeof window.doLogin !== 'function') {
+  window.doLogin = async function () {
+    const pwd = document.getElementById('loginPassword')?.value || '';
+    const setor = window.pendingSetor;
+    if (!setor || !pwd) { showToast('Informe a senha.','warn'); return; }
+    try{
+      const resp = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ setor, senha: pwd }) });
+      const json = await resp.json();
+      if (!json.ok) { showToast(json.error || 'Falha na autenticação','error'); return; }
+      localStorage.setItem('auth_token', json.token);
+      localStorage.setItem('auth_setor', json.setor);
+      closeModal('modalLogin');
+      window.abrirAppComSetor?.(json.setor);
+    } catch(e) { console.error('login error', e); showToast('Erro ao autenticar','error'); }
+  };
+}
+if (typeof window.abrirAppComSetor !== 'function') {
+  window.abrirAppComSetor = function (setor) {
+    window.userSetor = setor;
+    const ls = document.getElementById('loginScreen'); if (ls) ls.style.display = 'none';
+    const ma = document.getElementById('mainApp'); if (ma) ma.style.display = 'flex';
+    const mh = document.getElementById('mobileHeader'); if (mh) mh.style.display = 'flex';
+    const setorLabel = setor==='admin' ? 'Todos os Setores' : (setor==='RH' ? 'RH - Uniformes' : 'Segurança - EPIs');
+    const lbl = document.getElementById('sectorLabel'); if (lbl) lbl.textContent = setorLabel;
+    window.loadAllData?.();
+    window.lucide?.createIcons();
+  };
+}
+(function(){
+  function bind(){
+    document.querySelectorAll('button[onclick*="selectSetor(\'RH\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('RH')); });
+    document.querySelectorAll('button[onclick*="selectSetor(\'Segurança\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('Segurança')); });
+    document.querySelectorAll('button[onclick*="selectSetor(\'admin\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('admin')); });
+    const loginBtn = document.getElementById('btnLoginConfirm');
+    if (loginBtn && !loginBtn.dataset.bound) { loginBtn.addEventListener('click', window.doLogin); loginBtn.dataset.bound = '1'; }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
 </script>
 
 </body></html>`);
@@ -1546,13 +1652,66 @@ function abrirAppComSetor(setor){
   userSetor = setor;
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainApp').style.display='flex';
-  const mh = document.getElementById('mobileHeader'); if(mh) mh.style.display='flex';
+  const mh=document.getElementById('mobileHeader'); if(mh) mh.style.display='flex';
   const setorLabel = (setor==='admin')?'Todos os Setores':(setor==='RH')?'RH - Uniformes':'Segurança - EPIs';
   const lbl = document.getElementById('sectorLabel'); if (lbl) lbl.textContent = setorLabel;
   loadAllData();
   lucide.createIcons();
 }
 document.addEventListener('click',(ev)=>{ if(ev.target && ev.target.id==='btnLoginConfirm'){ doLogin(); }});
+</script>
+
+
+<script>
+// ===== Garantia de funções globais + fallback de listeners =====
+if (typeof window.selectSetor !== 'function') {
+  window.selectSetor = function (setor) {
+    window.pendingSetor = setor;
+    const el = document.getElementById('modalLoginSetor');
+    if (el) el.textContent = (setor === 'admin' ? 'Admin' : setor) + ' — informe a senha';
+    const ml = document.getElementById('modalLogin');
+    if (ml) { ml.style.display = 'flex'; ml.classList.remove('hidden'); }
+    setTimeout(() => document.getElementById('loginPassword')?.focus(), 50);
+  };
+}
+if (typeof window.doLogin !== 'function') {
+  window.doLogin = async function () {
+    const pwd = document.getElementById('loginPassword')?.value || '';
+    const setor = window.pendingSetor;
+    if (!setor || !pwd) { showToast('Informe a senha.','warn'); return; }
+    try{
+      const resp = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ setor, senha: pwd }) });
+      const json = await resp.json();
+      if (!json.ok) { showToast(json.error || 'Falha na autenticação','error'); return; }
+      localStorage.setItem('auth_token', json.token);
+      localStorage.setItem('auth_setor', json.setor);
+      closeModal('modalLogin');
+      window.abrirAppComSetor?.(json.setor);
+    } catch(e) { console.error('login error', e); showToast('Erro ao autenticar','error'); }
+  };
+}
+if (typeof window.abrirAppComSetor !== 'function') {
+  window.abrirAppComSetor = function (setor) {
+    window.userSetor = setor;
+    const ls = document.getElementById('loginScreen'); if (ls) ls.style.display = 'none';
+    const ma = document.getElementById('mainApp'); if (ma) ma.style.display = 'flex';
+    const mh = document.getElementById('mobileHeader'); if (mh) mh.style.display = 'flex';
+    const setorLabel = setor==='admin' ? 'Todos os Setores' : (setor==='RH' ? 'RH - Uniformes' : 'Segurança - EPIs');
+    const lbl = document.getElementById('sectorLabel'); if (lbl) lbl.textContent = setorLabel;
+    window.loadAllData?.();
+    window.lucide?.createIcons();
+  };
+}
+(function(){
+  function bind(){
+    document.querySelectorAll('button[onclick*="selectSetor(\'RH\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('RH')); });
+    document.querySelectorAll('button[onclick*="selectSetor(\'Segurança\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('Segurança')); });
+    document.querySelectorAll('button[onclick*="selectSetor(\'admin\')"]').forEach(btn=>{ btn.addEventListener('click', ()=> window.selectSetor('admin')); });
+    const loginBtn = document.getElementById('btnLoginConfirm');
+    if (loginBtn && !loginBtn.dataset.bound) { loginBtn.addEventListener('click', window.doLogin); loginBtn.dataset.bound = '1'; }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
 </script>
 
 </body>
