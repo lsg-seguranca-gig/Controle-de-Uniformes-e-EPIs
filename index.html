@@ -16,7 +16,7 @@
     };
   }
   </script>
-  <script src="/_sdk/element_sdk.js" onerror="console.warn('element_sdk não disponível')" onerror="console.warn('element_sdk não disponível')"></script>
+  <script src="/_sdk/element_sdk.js" onerror="console.warn('element_sdk não disponível')"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
   <script>
 tailwind.config = {
@@ -41,7 +41,7 @@ tailwind.config = {
 </script>
   
   
-  <script src="/_sdk/data_sdk.js" onerror="console.warn('data_sdk não disponível')" type="text/javascript" onerror="console.warn('data_sdk não disponível')"></script>
+  <script src="/_sdk/data_sdk.js" type="text/javascript" onerror="console.warn('data_sdk não disponível')"></script>
    <link rel="stylesheet" href="style.css" />
 </head>
  <body class="bg-ink text-light">
@@ -592,23 +592,16 @@ function showToast(msg, type = 'success') {
 }
 
 // ====================== NAVIGATION ======================
-function selectSetor(setor) {
-  userSetor = setor;
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('mainApp').style.display = 'flex';
-  // mobileHeader: visível só em mobile via JS (lg:hidden cuida do desktop)
-  const mh = document.getElementById('mobileHeader');
-  if (mh) mh.style.display = 'flex';
 
-  // Update labels
-  const setorLabel = setor === 'admin' ? 'Todos os Setores' : setor === 'RH' ? 'RH - Uniformes' : 'Segurança - EPIs';
-  const setorIcon = setor === 'admin' ? 'settings' : setor === 'RH' ? 'users' : 'hard-hat';
-  document.getElementById('sectorLabel').textContent = setorLabel;
-  
-  // Load data and start
-  loadAllData();
-  lucide.createIcons();
+function selectSetor(setor){
+  window.pendingSetor = setor;
+  const el = document.getElementById('modalLoginSetor');
+  if (el) el.textContent = (setor === 'admin' ? 'Admin' : setor) + ' — informe a senha';
+  const ml = document.getElementById('modalLogin');
+  if (ml){ ml.style.display='flex'; ml.classList.remove('hidden'); }
+  setTimeout(()=> document.getElementById('loginPassword')?.focus(), 50);
 }
+
 
 function logout() {
   userSetor = null;
@@ -1472,7 +1465,54 @@ function printReport() {
   const title = document.getElementById('reportTitle').textContent;
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>  <link rel="stylesheet" href="style.css" />
-</head><body><h1>${title}</h1>${content}</body></html>`);
+</head><body><h1>${title}</h1>${content}
+<!-- MODAL: Senha -->
+<div id="modalLogin" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay" style="display:none;">
+  <div class="bg-surface rounded-xl w-full max-w-sm mx-4 border border-panel p-5">
+    <h3 class="font-bold text-lg mb-3">Digite a senha</h3>
+    <p class="text-sm text-light/60 mb-3" id="modalLoginSetor"></p>
+    <input id="loginPassword" type="password" class="input-field w-full rounded-lg text-sm mb-4" placeholder="Senha" />
+    <div class="flex gap-2">
+      <button id="btnLoginConfirm" class="btn-primary text-white px-4 py-2 rounded-lg text-sm flex-1">Entrar</button>
+      <button onclick="closeModal('modalLogin')" class="btn-secondary text-light px-4 py-2 rounded-lg text-sm">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+let authToken = localStorage.getItem('auth_token') || null;
+let authSetor = localStorage.getItem('auth_setor') || null;
+async function doLogin(){
+  const pwd = document.getElementById('loginPassword')?.value || '';
+  const setor = window.pendingSetor;
+  if (!setor || !pwd){ showToast('Informe a senha.','warn'); return; }
+  try{
+    const resp = await fetch('/api/auth',{ method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ setor, senha: pwd })});
+    const json = await resp.json();
+    if (!json.ok){ showToast(json.error||'Falha na autenticação','error'); return; }
+    authToken = json.token; authSetor = json.setor;
+    localStorage.setItem('auth_token', authToken);
+    localStorage.setItem('auth_setor', authSetor);
+    closeModal('modalLogin');
+    abrirAppComSetor(json.setor);
+  }catch(e){ console.error('login error', e); showToast('Erro ao autenticar','error'); }
+}
+function abrirAppComSetor(setor){
+  userSetor = setor;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='flex';
+  const mh=document.getElementById('mobileHeader'); if(mh) mh.style.display='flex';
+  const setorLabel = setor==='admin'?'Todos os Setores':(setor==='RH'?'RH - Uniformes':'Segurança - EPIs');
+  const lbl = document.getElementById('sectorLabel'); if (lbl) lbl.textContent = setorLabel;
+  loadAllData();
+  lucide.createIcons();
+}
+// bind button
+document.addEventListener('click',(ev)=>{ if(ev.target && ev.target.id==='btnLoginConfirm'){ doLogin(); }});
+</script>
+
+</body></html>`);
   win.document.close();
   win.print();
 }
@@ -1482,8 +1522,53 @@ document.addEventListener('DOMContentLoaded', () => {
   lucide.createIcons();
   // Show login screen, don't auto-load
 });
-
-;try{Object.assign(window,{selectSetor, logout, navigateTo, toggleSidebar, closeSidebar, openModal, closeModal, showToast, openMovModal, updateMovItemList, updateMovPreco, saveMov, openInventarioModal, loadInventarioItems, saveInventario, loadItens, renderItens, loadEstoque, renderEstoque, loadMovimentacoes, renderMovimentacoes, loadMetas, renderMetas, editMeta, openMetaModal, saveMeta, loadRelatorios, gerarRelatorioEstoque, gerarRelatorioMov, gerarRelatorioMeta, showReport, printReport});}catch(e){console.warn('exports skipped', e);}
 </script>
- </body>
+ 
+<!-- MODAL: Senha -->
+<div id="modalLogin" class="fixed inset-0 z-50 hidden items-center justify-center modal-overlay" style="display:none;">
+  <div class="bg-surface rounded-xl w-full max-w-sm mx-4 border border-panel p-5">
+    <h3 class="font-bold text-lg mb-3">Digite a senha</h3>
+    <p class="text-sm text-light/60 mb-3" id="modalLoginSetor"></p>
+    <input id="loginPassword" type="password" class="input-field w-full rounded-lg text-sm mb-4" placeholder="Senha" />
+    <div class="flex gap-2">
+      <button id="btnLoginConfirm" class="btn-primary text-white px-4 py-2 rounded-lg text-sm flex-1">Entrar</button>
+      <button onclick="closeModal('modalLogin')" class="btn-secondary text-light px-4 py-2 rounded-lg text-sm">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+let authToken = localStorage.getItem('auth_token') || null;
+let authSetor = localStorage.getItem('auth_setor') || null;
+async function doLogin(){
+  const pwd = document.getElementById('loginPassword')?.value || '';
+  const setor = window.pendingSetor;
+  if (!setor || !pwd){ showToast('Informe a senha.','warn'); return; }
+  try{
+    const resp = await fetch('/api/auth',{ method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify({ setor, senha: pwd })});
+    const json = await resp.json();
+    if (!json.ok){ showToast(json.error||'Falha na autenticação','error'); return; }
+    authToken = json.token; authSetor = json.setor;
+    localStorage.setItem('auth_token', authToken);
+    localStorage.setItem('auth_setor', authSetor);
+    closeModal('modalLogin');
+    abrirAppComSetor(json.setor);
+  }catch(e){ console.error('login error', e); showToast('Erro ao autenticar','error'); }
+}
+function abrirAppComSetor(setor){
+  userSetor = setor;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='flex';
+  const mh=document.getElementById('mobileHeader'); if(mh) mh.style.display='flex';
+  const setorLabel = setor==='admin'?'Todos os Setores':(setor==='RH'?'RH - Uniformes':'Segurança - EPIs');
+  const lbl = document.getElementById('sectorLabel'); if (lbl) lbl.textContent = setorLabel;
+  loadAllData();
+  lucide.createIcons();
+}
+// bind button
+document.addEventListener('click',(ev)=>{ if(ev.target && ev.target.id==='btnLoginConfirm'){ doLogin(); }});
+</script>
+
+</body>
 </html>
